@@ -1,14 +1,14 @@
 /*  Student information for assignment:
  *
- *  On <MY|OUR> honor, <NAME1> and <NAME2), this programming assignment is <MY|OUR> own work
- *  and <I|WE> have not provided this code to any other student.
+ *  On OUR honor, Anay and Sid, this programming assignment is OUR own work
+ *  and WE have not provided this code to any other student.
  *
  *  Number of slip days used: 0
  *
  *  Student 1 (Student whose Canvas account is being used)
- *  UTEID:
- *  email address:
- *  Grader name:
+ *  UTEID: aa227842
+ *  email address: aa227842@eid.utexas.edu
+ *  Grader name: Parker
  *
  *  Student 2
  *  UTEID:
@@ -19,9 +19,7 @@
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.ArrayList;
 
-import javax.swing.tree.TreeNode;
 
 public class SimpleHuffProcessor implements IHuffProcessor {
 
@@ -66,10 +64,13 @@ public class SimpleHuffProcessor implements IHuffProcessor {
         root = constructTree(freq);
         sequences = new String[ALPH_SIZE + 1];
         constructSequences("", root);
-        int compressedBits = cntBits(headerFormat);
-        return totalBits - compressedBits;
+        return totalBits - cntBits(headerFormat);
     }
 
+    /*
+    pre:
+    post:
+     */
     private int cntBits(int headerFormat) {
         int compressedBits = 0;
         for (int i = 0; i < freq.length; i++) {
@@ -90,12 +91,16 @@ public class SimpleHuffProcessor implements IHuffProcessor {
             int newNumBits = BITS_PER_WORD + 1;
             compressedBits += leaveCount * newNumBits;
         }
-        //magic number and header format ints
+        // magic number and header format ints
         compressedBits += 2 * BITS_PER_INT;
         this.headerFormat = headerFormat;
         return compressedBits;
     }
 
+    /*
+    pre:
+    post:
+     */
     private void constructSequences(String curSeq, TreeNode curNode) {
         if (curNode != null) {
             if (curNode.isLeaf()) {
@@ -107,6 +112,10 @@ public class SimpleHuffProcessor implements IHuffProcessor {
         }
     }
 
+    /*
+    pre:
+    post:
+     */
     private TreeNode constructTree(int[] freq) {
         PriorityQueue pq = new PriorityQueue();
         for (int i = 0; i < ALPH_SIZE + 1; i++) {
@@ -123,30 +132,6 @@ public class SimpleHuffProcessor implements IHuffProcessor {
             pq.add(curNode);
         }
         return pq.remove();
-    }
-
-    private static class PriorityQueue {
-        private ArrayList<TreeNode> nums;
-
-        public PriorityQueue() {
-            nums = new ArrayList<>();
-        }
-
-        public void add(TreeNode curNode) {
-            int j = nums.size() - 1;
-            while (j >= 0 && nums.get(j).compareTo(curNode) <= 0) {
-                j--;
-            }
-            nums.add(++j, curNode);
-        }
-
-        public TreeNode remove() {
-            return nums.removeLast();
-        }
-
-        public int size() {
-            return nums.size();
-        }
     }
 
     /**
@@ -198,6 +183,10 @@ public class SimpleHuffProcessor implements IHuffProcessor {
         return totBitsWritten;
     }
 
+    /*
+    pre:
+    post:
+     */
     private void treeOutput(TreeNode curNode, BitOutputStream curOutput) {
         if (!curNode.isLeaf()) {
             curOutput.writeBits(1, 0);
@@ -209,9 +198,12 @@ public class SimpleHuffProcessor implements IHuffProcessor {
         }
     }
 
+    /*
+    pre:
+    post:
+     */
     private TreeNode reverseTreeOutput(BitInputStream curInput) throws IOException {
         int bit = curInput.readBits(1);
-        TreeNode res = null;
         if (bit == 0) {
             TreeNode left = reverseTreeOutput(curInput);
             TreeNode right = reverseTreeOutput(curInput);
@@ -241,7 +233,7 @@ public class SimpleHuffProcessor implements IHuffProcessor {
             throw new IOException("Unrecognized magic number value");
         }
         int headerType = curInput.readBits(BITS_PER_INT);
-        TreeNode tempRoot = null;
+        TreeNode tempRoot;
         if (headerType == STORE_COUNTS) {
             int[] tempFreq = new int[ALPH_SIZE + 1];
             for (int i = 0; i < ALPH_SIZE; i++) {
@@ -261,6 +253,10 @@ public class SimpleHuffProcessor implements IHuffProcessor {
         return totBitsWritten;
     }
 
+    /*
+    pre:
+    post:
+     */
     private int uncompressTraversal(TreeNode root, BitInputStream in, BitOutputStream out) 
             throws IOException {
         int res = 0;
@@ -282,10 +278,18 @@ public class SimpleHuffProcessor implements IHuffProcessor {
         return res;
     }
 
+    /*
+    pre: none
+    post:
+     */
     public void setViewer(IHuffViewer viewer) {
         myViewer = viewer;
     }
 
+    /*
+    pre:
+    post:
+     */
     private void showString(String s) {
         if (myViewer != null) {
             myViewer.update(s);
