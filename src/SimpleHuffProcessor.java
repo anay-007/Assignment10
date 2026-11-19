@@ -21,6 +21,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 
+import javax.swing.tree.TreeNode;
+
 public class SimpleHuffProcessor implements IHuffProcessor {
 
     private IHuffViewer myViewer;
@@ -61,7 +63,7 @@ public class SimpleHuffProcessor implements IHuffProcessor {
         }
 
         int totalBits = letterCount * BITS_PER_WORD;
-        root = constructTree();
+        root = constructTree(freq);
         sequences = new String[ALPH_SIZE + 1];
         constructSequences("", root);
         int compressedBits = cntBits(headerFormat);
@@ -105,7 +107,7 @@ public class SimpleHuffProcessor implements IHuffProcessor {
         }
     }
 
-    private TreeNode constructTree() {
+    private TreeNode constructTree(int[] freq) {
         PriorityQueue pq = new PriorityQueue();
         for (int i = 0; i < ALPH_SIZE + 1; i++) {
             if (freq[i] != 0) {
@@ -165,8 +167,7 @@ public class SimpleHuffProcessor implements IHuffProcessor {
     public int compress(InputStream in, OutputStream out, boolean force) throws IOException {
         BitInputStream curInput = new BitInputStream(in);
         BitOutputStream curOutput = new BitOutputStream(out);
-        int totBitsWritten = 0;
-        totBitsWritten += 2 * BITS_PER_INT;
+        int totBitsWritten = 2 * BITS_PER_INT;
         curOutput.writeBits(BITS_PER_INT, MAGIC_NUMBER);
         curOutput.writeBits(BITS_PER_INT, headerFormat);
         if (headerFormat == STORE_COUNTS) {
@@ -197,7 +198,6 @@ public class SimpleHuffProcessor implements IHuffProcessor {
         return totBitsWritten;
     }
 
-
     private void treeOutput(TreeNode curNode, BitOutputStream curOutput) {
         if (!curNode.isLeaf()) {
             curOutput.writeBits(1, 0);
@@ -206,6 +206,20 @@ public class SimpleHuffProcessor implements IHuffProcessor {
         } else {
             curOutput.writeBits(1, 1);
             curOutput.writeBits(BITS_PER_WORD + 1, curNode.getValue());
+        }
+    }
+
+    private TreeNode reverseTreeOutput(BitInputStream curInput) throws IOException {
+        int bit = curInput.readBits(1);
+        TreeNode res = null;
+        if (bit == 0) {
+            TreeNode left = reverseTreeOutput(curInput);
+            TreeNode right = reverseTreeOutput(curInput);
+            return new TreeNode(left, PSEUDO_EOF + 1, right);
+        } else if (bit == 1) {
+            return new TreeNode(curInput.readBits(BITS_PER_WORD + 1), 0);
+        } else {
+            throw new IOException("Input stream out of bits");
         }
     }
 
@@ -222,13 +236,50 @@ public class SimpleHuffProcessor implements IHuffProcessor {
     public int uncompress(InputStream in, OutputStream out) throws IOException {
         BitInputStream curInput = new BitInputStream(in);
         BitOutputStream curOutput = new BitOutputStream(out);
-        int curFormat = curInput.readBits(BITS_PER_INT);
-        int totBitsWritten=0;
-
-
+        int supposedMagicNum = curInput.readBits(BITS_PER_INT);
+        if (supposedMagicNum != MAGIC_NUMBER) {
+            throw new IOException("Unrecognized magic number value");
+        }
+        int headerType = curInput.readBits(BITS_PER_INT);
+        TreeNode tempRoot = null;
+        if (headerType == STORE_COUNTS) {
+            int[] tempFreq = new int[ALPH_SIZE + 1];
+            for (int i = 0; i < ALPH_SIZE; i++) {
+                tempFreq[i] = curInput.readBits(BITS_PER_INT);
+            }
+            tempFreq[PSEUDO_EOF] = 1;
+            tempRoot = constructTree(tempFreq);
+        } else if (headerType == STORE_TREE) {
+            curInput.readBits(BITS_PER_INT);
+            tempRoot = reverseTreeOutput(curInput);
+        } else {
+            throw new IOException("Unrecognized header type");
+        }
+        int totBitsWritten = uncompressTraversal(tempRoot, curInput, curOutput);
         curInput.close();
         curOutput.close();
         return totBitsWritten;
+    }
+
+    private int uncompressTraversal(TreeNode root, BitInputStream in, BitOutputStream out) 
+            throws IOException {
+        int res = 0;
+        TreeNode curr = root;
+        while (curr.getValue() != PSEUDO_EOF) {
+            int bit = in.readBits(1);
+            if (bit == -1) {
+                throw new IOException("Input stream ran out of bits");
+            }
+            curr = (bit == 0) ? curr.getLeft() : curr.getRight();
+            if (curr.isLeaf()) {
+                if (curr.getValue() != PSEUDO_EOF) {
+                    out.writeBits(BITS_PER_WORD, curr.getValue());
+                    res += BITS_PER_WORD;
+                    curr = root;
+                }
+            }
+        }
+        return res;
     }
 
     public void setViewer(IHuffViewer viewer) {
