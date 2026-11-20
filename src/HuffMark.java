@@ -56,7 +56,8 @@ public class HuffMark {
             System.out.println("--------");
             System.out.printf("total bytes read: %d\n",myTotalUncompressedBytes);
             System.out.printf("total compressed bytes %d\n", myTotalCompressedBytes);
-            System.out.printf("total percent compression %.3f\n",100.0* (1.0 - 1.0*myTotalCompressedBytes/myTotalUncompressedBytes));
+            System.out.printf("total percent compression %.3f\n",100.0* (1.0 - 1.0*
+                    myTotalCompressedBytes/myTotalUncompressedBytes));
             System.out.printf("compression time: %.3f\n",myTotalCompressTime);
         }
     }
@@ -88,14 +89,15 @@ public class HuffMark {
             return new FileInputStream(f);
         }
         
-        ByteBuffer buffer = null;
+        ByteBuffer buffer;
          try {
              FileChannel channel = new FileInputStream(f).getChannel();
              buffer = channel.map(FileChannel.MapMode.READ_ONLY, 0, channel.size());
              byte[] barray = new byte[buffer.limit()];
            
              if (barray.length != channel.size()){               
-                 System.err.println(String.format("Reading %s error: lengths differ %d %ld\n",f.getName(),barray.length,channel.size()));
+                 System.err.println(String.format("Reading %s error: lengths differ %d %ld\n",
+                         f.getName(),barray.length,channel.size()));
              }
              buffer.get(barray);
              return new ByteArrayInputStream(barray);

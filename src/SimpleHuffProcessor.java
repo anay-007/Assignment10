@@ -29,6 +29,7 @@ public class SimpleHuffProcessor implements IHuffProcessor {
     private String[] sequences;
     private int headerFormat;
     private int leaveCount;
+    private static final int HEADER_INTS = 2;
 
     /**
      * Preprocess data so that compression is possible ---
@@ -152,21 +153,8 @@ public class SimpleHuffProcessor implements IHuffProcessor {
     public int compress(InputStream in, OutputStream out, boolean force) throws IOException {
         BitInputStream curInput = new BitInputStream(in);
         BitOutputStream curOutput = new BitOutputStream(out);
-        int totBitsWritten = 2 * BITS_PER_INT;
-        curOutput.writeBits(BITS_PER_INT, MAGIC_NUMBER);
-        curOutput.writeBits(BITS_PER_INT, headerFormat);
-        if (headerFormat == STORE_COUNTS) {
-            for (int i = 0; i < ALPH_SIZE; i++) {
-                curOutput.writeBits(BITS_PER_INT, freq[i]);
-            }
-            totBitsWritten += ALPH_SIZE * BITS_PER_INT;
-        } else if (headerFormat == STORE_TREE) {
-            int totTreeBits = (2 * leaveCount - 1) + leaveCount * (BITS_PER_WORD + 1);
-            curOutput.writeBits(BITS_PER_INT, totTreeBits);
-            treeOutput(root, curOutput);
-            totBitsWritten += BITS_PER_INT + totTreeBits;
-        }
         int curWord = curInput.readBits(BITS_PER_WORD);
+        int totBitsWritten=writeBits(curOutput);
         while (curWord != -1) {
             totBitsWritten += sequences[curWord].length();
             for (int i = 0; i < sequences[curWord].length(); i++) {
@@ -180,6 +168,24 @@ public class SimpleHuffProcessor implements IHuffProcessor {
         totBitsWritten += sequences[PSEUDO_EOF].length();
 
         curOutput.close();
+        return totBitsWritten;
+    }
+    
+    private int writeBits(BitOutputStream curOutput){
+        int totBitsWritten = HEADER_INTS * BITS_PER_INT;
+        curOutput.writeBits(BITS_PER_INT, MAGIC_NUMBER);
+        curOutput.writeBits(BITS_PER_INT, headerFormat);
+        if (headerFormat == STORE_COUNTS) {
+            for (int i = 0; i < ALPH_SIZE; i++) {
+                curOutput.writeBits(BITS_PER_INT, freq[i]);
+            }
+            totBitsWritten += ALPH_SIZE * BITS_PER_INT;
+        } else if (headerFormat == STORE_TREE) {
+            int totTreeBits = (2 * leaveCount - 1) + leaveCount * (BITS_PER_WORD + 1);
+            curOutput.writeBits(BITS_PER_INT, totTreeBits);
+            treeOutput(root, curOutput);
+            totBitsWritten += BITS_PER_INT + totTreeBits;
+        }
         return totBitsWritten;
     }
 
