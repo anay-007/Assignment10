@@ -79,12 +79,14 @@ public class SimpleHuffProcessor implements IHuffProcessor {
                 compressedBits += (freq[i] * sequences[i].length());
             }
         }
+
         leaveCount=0;
         for (int curFreq : freq) {
             if (curFreq != 0) {
                 leaveCount++;
             }
         }
+
         if (headerFormat == STORE_COUNTS) {
             compressedBits += ALPH_SIZE * BITS_PER_INT;
         } else if (headerFormat == STORE_TREE) {
@@ -95,6 +97,7 @@ public class SimpleHuffProcessor implements IHuffProcessor {
         } else {
             throw new IOException("Invalid headerFormat type");
         }
+
         // magic number and header format ints
         compressedBits += 2 * BITS_PER_INT;
         this.headerFormat = headerFormat;
@@ -165,6 +168,7 @@ public class SimpleHuffProcessor implements IHuffProcessor {
         BitOutputStream curOutput = new BitOutputStream(out);
         int curWord = curInput.readBits(BITS_PER_WORD);
         int totBitsWritten=writeBits(curOutput);
+
         while (curWord != -1) {
             totBitsWritten += sequences[curWord].length();
             for (int i = 0; i < sequences[curWord].length(); i++) {
@@ -172,6 +176,7 @@ public class SimpleHuffProcessor implements IHuffProcessor {
             }
             curWord = curInput.readBits(BITS_PER_WORD);
         }
+
         for (int i = 0; i < sequences[PSEUDO_EOF].length(); i++) {
             curOutput.writeBits(1, (sequences[PSEUDO_EOF].charAt(i) == '1' ? 1 : 0));
         }
@@ -196,6 +201,7 @@ public class SimpleHuffProcessor implements IHuffProcessor {
             for (int i = 0; i < ALPH_SIZE; i++) {
                 curOutput.writeBits(BITS_PER_INT, freq[i]);
             }
+
             totBitsWritten += ALPH_SIZE * BITS_PER_INT;
         } else if (headerFormat == STORE_TREE) {
             int totTreeBits = (2 * leaveCount - 1) + leaveCount * (BITS_PER_WORD + 1);
@@ -261,6 +267,7 @@ public class SimpleHuffProcessor implements IHuffProcessor {
         if (supposedMagicNum != MAGIC_NUMBER) {
             throw new IOException("Unrecognized magic number value");
         }
+
         int headerType = curInput.readBits(BITS_PER_INT);
         TreeNode tempRoot;
         if (headerType == STORE_COUNTS) {
@@ -268,6 +275,7 @@ public class SimpleHuffProcessor implements IHuffProcessor {
             for (int i = 0; i < ALPH_SIZE; i++) {
                 tempFreq[i] = curInput.readBits(BITS_PER_INT);
             }
+
             tempFreq[PSEUDO_EOF] = 1;
             tempRoot = constructTree(tempFreq);
         } else if (headerType == STORE_TREE) {
@@ -276,6 +284,7 @@ public class SimpleHuffProcessor implements IHuffProcessor {
         } else {
             throw new IOException("Unrecognized header type");
         }
+
         int totBitsWritten = uncompressTraversal(tempRoot, curInput, curOutput);
         curInput.close();
         curOutput.close();
@@ -298,6 +307,7 @@ public class SimpleHuffProcessor implements IHuffProcessor {
             if (bit == -1) {
                 throw new IOException("Input stream ran out of bits");
             }
+            
             curr = (bit == 0) ? curr.getLeft() : curr.getRight();
             if (curr.isLeaf()) {
                 if (curr.getValue() != PSEUDO_EOF) {
