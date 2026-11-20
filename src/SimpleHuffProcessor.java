@@ -11,8 +11,8 @@
  *  Grader name: Parker
  *
  *  Student 2
- *  UTEID: 
- *  email address: 
+ *  UTEID: st42435
+ *  email address: st42435@my.utexas.edu
  *
  */
 
@@ -69,10 +69,10 @@ public class SimpleHuffProcessor implements IHuffProcessor {
     }
 
     /*
-    pre:
-    post:
+    pre: headerFormat == STORE_COUNTS or STORE_TREE
+    post: Returns the total number of bits in the compressed file
      */
-    private int cntBits(int headerFormat) {
+    private int cntBits(int headerFormat) throws IOException {
         int compressedBits = 0;
         for (int i = 0; i < freq.length; i++) {
             if (freq[i] != 0) {
@@ -92,6 +92,8 @@ public class SimpleHuffProcessor implements IHuffProcessor {
             compressedBits += numNodes + BITS_PER_INT;
             int newNumBits = BITS_PER_WORD + 1;
             compressedBits += leaveCount * newNumBits;
+        } else {
+            throw new IOException("Invalid headerFormat type");
         }
         // magic number and header format ints
         compressedBits += 2 * BITS_PER_INT;
@@ -100,10 +102,13 @@ public class SimpleHuffProcessor implements IHuffProcessor {
     }
 
     /*
-    pre:
-    post:
+    pre: sequences != null, curSeq != null;
+    post: sequences is filled by every leaf node in curNode's subtree's bit values
      */
     private void constructSequences(String curSeq, TreeNode curNode) {
+        if (sequences == null || curSeq == null) {
+            throw new IllegalArgumentException("Sequences and curSeq can't be null");
+        }
         if (curNode != null) {
             if (curNode.isLeaf()) {
                 sequences[curNode.getValue()] = curSeq;
@@ -115,10 +120,13 @@ public class SimpleHuffProcessor implements IHuffProcessor {
     }
 
     /*
-    pre:
-    post:
+    pre: freq != null, freq.length >= ALPH_SIZE + 1
+    post: Returns a root of a new tree constructed from the frequency array
      */
     private TreeNode constructTree(int[] freq) {
+        if (freq == null || freq.length < ALPH_SIZE + 1) {
+            throw new IllegalArgumentException("Freq is not formatted properly");
+        }
         PriorityQueue pq = new PriorityQueue();
         for (int i = 0; i < ALPH_SIZE + 1; i++) {
             if (freq[i] != 0) {
@@ -146,7 +154,8 @@ public class SimpleHuffProcessor implements IHuffProcessor {
      * @param out   is bound to a file/stream to which bits are written
      *              for the compressed file (not a BitOutputStream)
      * @param force if this is true create the output file even if it is larger than the input file.
-     *              If this is false do not create the output file if it is larger than the input file.
+     *              If this is false do not create the output file if it is 
+     *              larger than the input file.
      * @return the number of bits written.
      * @throws IOException if an error occurs while reading from the input file or
      *                     writing to the output file.
@@ -172,7 +181,14 @@ public class SimpleHuffProcessor implements IHuffProcessor {
         return totBitsWritten;
     }
     
+    /*
+    pre: curOutput != null
+    post: Returns num of bits written to out
+     */
     private int writeBits(BitOutputStream curOutput){
+        if (curOutput == null) {
+            throw new IllegalArgumentException("curOutput can't be null");
+        }
         int totBitsWritten = HEADER_INTS * BITS_PER_INT;
         curOutput.writeBits(BITS_PER_INT, MAGIC_NUMBER);
         curOutput.writeBits(BITS_PER_INT, headerFormat);
@@ -191,10 +207,13 @@ public class SimpleHuffProcessor implements IHuffProcessor {
     }
 
     /*
-    pre:
-    post:
+    pre: curNode != null, curOutput != null
+    post: Writes the tree in preorder in reference to curNode
      */
     private void treeOutput(TreeNode curNode, BitOutputStream curOutput) {
+        if (curNode == null || curOutput == null) {
+            throw new IllegalArgumentException("curNode and curOutput cannot be null");
+        }
         if (!curNode.isLeaf()) {
             curOutput.writeBits(1, 0);
             treeOutput(curNode.getLeft(), curOutput);
@@ -206,10 +225,13 @@ public class SimpleHuffProcessor implements IHuffProcessor {
     }
 
     /*
-    pre:
-    post:
+    pre: curInput != null
+    post: Returns the root of a tree constructed by reading in the input bits
      */
     private TreeNode reverseTreeOutput(BitInputStream curInput) throws IOException {
+        if (curInput == null) {
+            throw new IllegalArgumentException("curInput cannot be null");
+        }
         int bit = curInput.readBits(1);
         if (bit == 0) {
             TreeNode left = reverseTreeOutput(curInput);
@@ -261,11 +283,14 @@ public class SimpleHuffProcessor implements IHuffProcessor {
     }
 
     /*
-    pre:
-    post:
+    pre: root != null, in != null, out != null
+    post: Returns the number of bits written to out
      */
     private int uncompressTraversal(TreeNode root, BitInputStream in, BitOutputStream out) 
             throws IOException {
+        if (root == null || in == null || out == null) {
+            throw new IllegalArgumentException("root, in, and out cannot be null");
+        }
         int res = 0;
         TreeNode curr = root;
         while (curr.getValue() != PSEUDO_EOF) {
@@ -286,16 +311,16 @@ public class SimpleHuffProcessor implements IHuffProcessor {
     }
 
     /*
-    pre: none
-    post:
+    pre: None
+    post: myViewer is set to viewer
      */
     public void setViewer(IHuffViewer viewer) {
         myViewer = viewer;
     }
 
     /*
-    pre:
-    post:
+    pre: None
+    post: Displays the string S
      */
     private void showString(String s) {
         if (myViewer != null) {
