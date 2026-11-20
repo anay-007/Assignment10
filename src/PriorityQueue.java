@@ -23,7 +23,7 @@ public class PriorityQueue {
         while (j >= 0 && nums.get(j).compareTo(curNode) <= 0) {
             j--;
         }
-        nums.add(++j, curNode);
+        nums.add(j + 1, curNode);
     }
 
     /*
