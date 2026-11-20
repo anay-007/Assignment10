@@ -79,6 +79,7 @@ public class SimpleHuffProcessor implements IHuffProcessor {
                 compressedBits += (freq[i] * sequences[i].length());
             }
         }
+        leaveCount=0;
         for (int curFreq : freq) {
             if (curFreq != 0) {
                 leaveCount++;
